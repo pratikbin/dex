@@ -1,4 +1,7 @@
 ARG BASE_IMAGE=alpine
+ARG GOMPLATE_VERSION=v3.11.3
+
+FROM --platform=$TARGETPLATFORM hairyhenderson/gomplate:${GOMPLATE_VERSION} AS gomplate
 
 FROM golang:1.19.3-alpine3.16 AS builder
 
@@ -28,18 +31,6 @@ RUN mkdir -p /var/dex
 RUN mkdir -p /etc/dex
 COPY config.docker.yaml /etc/dex/
 
-FROM alpine:3.16.2 AS gomplate
-
-ARG TARGETOS
-ARG TARGETARCH
-ARG TARGETVARIANT
-
-ENV GOMPLATE_VERSION=v3.11.3
-
-RUN wget -O /usr/local/bin/gomplate \
-    "https://github.com/hairyhenderson/gomplate/releases/download/${GOMPLATE_VERSION}/gomplate_${TARGETOS:-linux}-${TARGETARCH:-amd64}${TARGETVARIANT}" \
-    && chmod +x /usr/local/bin/gomplate
-
 # For Dependabot to detect base image versions
 FROM alpine:3.16.2 AS alpine
 FROM gcr.io/distroless/static:latest AS distroless
@@ -64,7 +55,7 @@ COPY --from=builder /go/bin/dex /usr/local/bin/dex
 COPY --from=builder /go/bin/docker-entrypoint /usr/local/bin/docker-entrypoint
 COPY --from=builder /usr/local/src/dex/web /srv/dex/web
 
-COPY --from=gomplate /usr/local/bin/gomplate /usr/local/bin/gomplate
+COPY --from=gomplate /gomplate /usr/local/bin/gomplate
 
 USER 1001:1001
 
